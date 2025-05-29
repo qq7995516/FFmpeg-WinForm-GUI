@@ -4,12 +4,10 @@ namespace ffmpeg视频处理
 {
     public partial class Form1 : Form
     {
-        //FFmpeg 路径
-        private string ffmpegExecutablePath = @"ffmpeg.exe";
-
         // 常用视频和音频文件扩展名列表
         private readonly HashSet<string> _videoExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".webm", ".mpeg", ".mpg" };
+
         private readonly HashSet<string> _audioExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { ".mp3", ".wav", ".aac", ".m4a", ".ogg", ".wma", ".flac" };
 
@@ -310,7 +308,6 @@ namespace ffmpeg视频处理
             }
         }
 
-
         // 辅助方法：获取所有勾选的文件路径
         private List<string> GetCheckedItems()
         {
@@ -357,6 +354,5 @@ namespace ffmpeg视频处理
             // 允许拖拽
             listViewFiles.AllowDrop = true;
         }
-
     }
 }
