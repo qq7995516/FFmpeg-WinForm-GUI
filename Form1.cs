@@ -22,9 +22,8 @@ namespace ffmpeg视频处理
         {
             FFMpegCore.GlobalFFOptions.Configure(options =>
             {
-                options.BinaryFolder = @"ffmpegShared\bin\";  // 指定包含 ffmpeg.exe 的文件夹路径
-                                                                  // 或者直接指定可执行文件路径
-                                                                  // options.BinaryPath = @"C:\path\to\ffmpeg\bin\ffmpeg.exe";
+                // 设置 FFmpeg 可执行文件路径
+                options.BinaryFolder = @"ffmpegShared\bin\";
             });
             InitializeListViewSettings();
         }
