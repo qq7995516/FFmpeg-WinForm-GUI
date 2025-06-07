@@ -347,27 +347,32 @@ namespace ffmpeg视频处理
                 progressForm.UpdateStatus(message);
             });
 
-            var progressTask = Task.Run(async () =>
-            {
-                try
-                {
-                    await operation(checkedItems.ToArray(), progress, progressForm.CancellationToken);
-                    progressForm.SetCompleted(true);
-                }
-                catch (OperationCanceledException)
-                {
-                    progressForm.UpdateStatus("操作已取消");
-                    progressForm.SetCompleted(false);
-                }
-                catch (Exception ex)
-                {
-                    progressForm.UpdateStatus($"错误: {ex.Message}");
-                    progressForm.SetCompleted(false);
-                }
-            });
+            // 先显示非模态对话框
+            progressForm.Show(this);
 
-            progressForm.ShowDialog(this);
-            await progressTask;
+            try
+            {
+                // 直接在主线程上下文中执行异步操作
+                await operation(checkedItems.ToArray(), progress, progressForm.CancellationToken);
+                progressForm.SetCompleted(true);
+            }
+            catch (OperationCanceledException)
+            {
+                progressForm.UpdateStatus("操作已取消");
+                progressForm.SetCompleted(false);
+            }
+            catch (Exception ex)
+            {
+                progressForm.UpdateStatus($"错误: {ex.Message}");
+                progressForm.SetCompleted(false);
+            }
+
+            // 等待用户关闭进度窗口
+            while (progressForm.Visible)
+            {
+                Application.DoEvents();
+                await Task.Delay(100);
+            }
         }
 
         private bool ValidateFileTypes(string[] files, HashSet<string> allowedExtensions, string fileType)
