@@ -18,11 +18,41 @@ namespace ffmpeg视频处理
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            // 检查 FFmpeg 是否可用
+            if (!FFmpegDownloader.IsFFmpegInstalled())
+            {
+                var result = MessageBox.Show(
+                    "检测到 FFmpeg 未安装或无法使用。\n\n是否现在下载安装 FFmpeg？\n\n点击\"是\"自动下载，点击\"否\"手动配置。",
+                    "FFmpeg 未找到",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    // 显示下载窗口
+                    using (var downloadForm = new FFmpegDownloadForm())
+                    {
+                        downloadForm.ShowDialog(this);
+                    }
+                }
+                else if (result == DialogResult.No)
+                {
+                    MessageBox.Show(
+                        "请手动下载 FFmpeg 并放置到以下目录：\n\n" +
+                        Path.Combine(Application.StartupPath, "ffmpegShared", "bin") +
+                        "\n\n下载地址：https://ffmpeg.org/download.html",
+                        "手动安装说明",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }
+
+            // 配置 FFMpegCore
             FFMpegCore.GlobalFFOptions.Configure(options =>
             {
-                // 设置 FFmpeg 可执行文件路径
-                options.BinaryFolder = @"ffmpegShared\bin\";
+                options.BinaryFolder = Path.Combine(Application.StartupPath, "ffmpegShared", "bin");
             });
+
             InitializeListViewSettings();
         }
 
