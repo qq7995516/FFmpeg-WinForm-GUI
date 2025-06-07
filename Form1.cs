@@ -354,5 +354,147 @@ namespace ffmpeg视频处理
             // 允许拖拽
             listViewFiles.AllowDrop = true;
         }
+
+        private void 提取音频ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // 获取所有勾选的项目
+                var checkedItems = GetCheckedItems();
+                if (checkedItems.Count == 0)
+                {
+                    MessageBox.Show("请选择至少一个视频文件进行音频提取", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 检查是否都是视频文件
+                foreach (var filePath in checkedItems)
+                {
+                    string extension = Path.GetExtension(filePath);
+                    if (!_videoExtensions.Contains(extension))
+                    {
+                        MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是视频文件，无法提取音频", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+
+                // 选择保存文件夹
+                using var folderDialog = new FolderBrowserDialog();
+                folderDialog.Description = "选择音频文件保存位置";
+
+                if (folderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string outputFolder = folderDialog.SelectedPath;
+                    int successCount = 0;
+                    int failCount = 0;
+
+                    // 显示进度提示
+                    MessageBox.Show($"开始提取 {checkedItems.Count} 个视频的音频，请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // 逐个提取音频
+                    foreach (var videoFile in checkedItems)
+                    {
+                        try
+                        {
+                            string fileName = Path.GetFileNameWithoutExtension(videoFile);
+                            string audioOutput = Path.Combine(outputFolder, $"{fileName}.mp3");
+
+                            // 执行提取操作
+                            bool success = FFmpegExtensions.ExtractAudio(videoFile, audioOutput);
+
+                            if (success)
+                                successCount++;
+                            else
+                                failCount++;
+                        }
+                        catch
+                        {
+                            failCount++;
+                        }
+                    }
+
+                    // 显示结果
+                    string message = $"音频提取完成！\n成功: {successCount} 个\n失败: {failCount} 个";
+                    MessageBox.Show(message, "完成", MessageBoxButtons.OK,
+                        failCount == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"提取音频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void 提取视频ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // 获取所有勾选的项目
+                var checkedItems = GetCheckedItems();
+                if (checkedItems.Count == 0)
+                {
+                    MessageBox.Show("请选择至少一个视频文件进行视频提取（去除音频）", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 检查是否都是视频文件
+                foreach (var filePath in checkedItems)
+                {
+                    string extension = Path.GetExtension(filePath);
+                    if (!_videoExtensions.Contains(extension))
+                    {
+                        MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是视频文件，无法提取视频", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                }
+
+                // 选择保存文件夹
+                using var folderDialog = new FolderBrowserDialog();
+                folderDialog.Description = "选择视频文件保存位置";
+
+                if (folderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string outputFolder = folderDialog.SelectedPath;
+                    int successCount = 0;
+                    int failCount = 0;
+
+                    // 显示进度提示
+                    MessageBox.Show($"开始提取 {checkedItems.Count} 个视频（去除音频），请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // 逐个提取视频
+                    foreach (var videoFile in checkedItems)
+                    {
+                        try
+                        {
+                            string fileName = Path.GetFileNameWithoutExtension(videoFile);
+                            string extension = Path.GetExtension(videoFile);
+                            string videoOutput = Path.Combine(outputFolder, $"{fileName}_no_audio{extension}");
+
+                            // 执行提取操作
+                            bool success = FFmpegExtensions.ExtractVideo(videoFile, videoOutput);
+
+                            if (success)
+                                successCount++;
+                            else
+                                failCount++;
+                        }
+                        catch
+                        {
+                            failCount++;
+                        }
+                    }
+
+                    // 显示结果
+                    string message = $"视频提取完成！\n成功: {successCount} 个\n失败: {failCount} 个";
+                    MessageBox.Show(message, "完成", MessageBoxButtons.OK,
+                        failCount == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"提取视频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
     }
 }

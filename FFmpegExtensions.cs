@@ -1,4 +1,5 @@
 ﻿using FFMpegCore;
+using FFMpegCore.Enums;
 
 namespace ffmpeg视频处理
 {
@@ -45,6 +46,40 @@ namespace ffmpeg视频处理
         {
             // 直接调用 ReplaceAudio 完成视频音轨替换
             return FFMpeg.ReplaceAudio(videoFile, audioFile, output, stopAtShortest);
+        }
+
+        /// <summary>
+        /// 从视频文件中提取音频
+        /// </summary>
+        /// <param name="videoFile">输入视频文件路径</param>
+        /// <param name="audioOutput">输出音频文件路径</param>
+        /// <returns>提取是否成功</returns>
+        public static bool ExtractAudio(string videoFile, string audioOutput)
+        {
+            return FFMpegArguments
+                .FromFileInput(videoFile)
+                .OutputToFile(audioOutput, true, opt => opt
+                    .WithVideoCodec("none")
+                    .WithAudioCodec("copy")
+                )
+                .ProcessSynchronously();
+        }
+
+        /// <summary>
+        /// 从视频文件中提取视频流（去除音频）
+        /// </summary>
+        /// <param name="videoFile">输入视频文件路径</param>
+        /// <param name="videoOutput">输出视频文件路径</param>
+        /// <returns>提取是否成功</returns>
+        public static bool ExtractVideo(string videoFile, string videoOutput)
+        {
+            return FFMpegArguments
+                .FromFileInput(videoFile)
+                .OutputToFile(videoOutput, true, opt => opt
+                    .WithVideoCodec("copy")   // 直接复制视频流
+                    .WithAudioCodec("none")   // 不包含音频流
+                )
+                .ProcessSynchronously();
         }
     }
 }
