@@ -55,7 +55,9 @@ namespace ffmpeg视频处理
 
                     bool result = FFMpegArguments
                         .FromConcatInput(audioFiles)
-                        .OutputToFile(output, true, opt => opt.CopyChannel())
+                        .OutputToFile(output, true, opt => opt
+                            .WithAudioCodec(AudioCodec.LibMp3Lame)  // 明确指定编解码器
+                            .WithAudioBitrate(128))          // 设置比特率
                         .ProcessSynchronously();
 
                     progress?.Report(result ? "音频合并完成" : "音频合并失败");
@@ -156,11 +158,11 @@ namespace ffmpeg视频处理
                     cancellationToken.ThrowIfCancellationRequested();
 
                     bool result = FFMpegArguments
-                        .FromFileInput(videoFile)
-                        .OutputToFile(videoOutput, true, opt => opt
-                            .WithVideoCodec("copy")
-                            .WithAudioCodec("none"))
-                        .ProcessSynchronously();
+                            .FromFileInput(videoFile)
+                            .OutputToFile(videoOutput, true, opt => opt
+                                .WithVideoCodec("copy")
+                                .WithCustomArgument("-an"))  // 使用 -an 参数禁用音频
+                            .ProcessSynchronously();
 
                     progress?.Report(result ? "视频提取完成" : "视频提取失败");
                     return result;
