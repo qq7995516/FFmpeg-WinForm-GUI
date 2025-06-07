@@ -121,8 +121,8 @@ namespace ffmpeg视频处理
                     bool result = FFMpegArguments
                         .FromFileInput(videoFile)
                         .OutputToFile(audioOutput, true, opt => opt
-                            .WithVideoCodec("none")
-                            .WithAudioCodec("copy"))
+                            .WithCustomArgument("-vn")      // 不包含视频
+                            .WithAudioCodec(AudioCodec.LibMp3Lame)) // 使用MP3编码
                         .ProcessSynchronously();
 
                     progress?.Report(result ? "音频提取完成" : "音频提取失败");
@@ -140,6 +140,7 @@ namespace ffmpeg视频处理
                 }
             }, cancellationToken);
         }
+
 
         /// <summary>
         /// 异步提取视频
