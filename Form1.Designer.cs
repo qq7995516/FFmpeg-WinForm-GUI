@@ -58,47 +58,47 @@
             // 
             contextMenuStrip1.Items.AddRange(new ToolStripItem[] { 合并视频ToolStripMenuItem, 合并音频ToolStripMenuItem, 合并音视频ToolStripMenuItem, 删除勾选项ToolStripMenuItem, 清空ToolStripMenuItem, 添加文件ToolStripMenuItem, 提取ToolStripMenuItem });
             contextMenuStrip1.Name = "contextMenuStrip1";
-            contextMenuStrip1.Size = new Size(181, 194);
+            contextMenuStrip1.Size = new Size(144, 172);
             // 
             // 合并视频ToolStripMenuItem
             // 
             合并视频ToolStripMenuItem.Name = "合并视频ToolStripMenuItem";
-            合并视频ToolStripMenuItem.Size = new Size(180, 24);
+            合并视频ToolStripMenuItem.Size = new Size(143, 24);
             合并视频ToolStripMenuItem.Text = "合并视频";
             合并视频ToolStripMenuItem.Click += 合并视频ToolStripMenuItem_Click;
             // 
             // 合并音频ToolStripMenuItem
             // 
             合并音频ToolStripMenuItem.Name = "合并音频ToolStripMenuItem";
-            合并音频ToolStripMenuItem.Size = new Size(180, 24);
+            合并音频ToolStripMenuItem.Size = new Size(143, 24);
             合并音频ToolStripMenuItem.Text = "合并音频";
             合并音频ToolStripMenuItem.Click += 合并音频ToolStripMenuItem_Click;
             // 
             // 合并音视频ToolStripMenuItem
             // 
             合并音视频ToolStripMenuItem.Name = "合并音视频ToolStripMenuItem";
-            合并音视频ToolStripMenuItem.Size = new Size(180, 24);
+            合并音视频ToolStripMenuItem.Size = new Size(143, 24);
             合并音视频ToolStripMenuItem.Text = "合并音视频";
             合并音视频ToolStripMenuItem.Click += 合并音视频ToolStripMenuItem_Click;
             // 
             // 删除勾选项ToolStripMenuItem
             // 
             删除勾选项ToolStripMenuItem.Name = "删除勾选项ToolStripMenuItem";
-            删除勾选项ToolStripMenuItem.Size = new Size(180, 24);
+            删除勾选项ToolStripMenuItem.Size = new Size(143, 24);
             删除勾选项ToolStripMenuItem.Text = "删除勾选项";
             删除勾选项ToolStripMenuItem.Click += 删除勾选项ToolStripMenuItem_Click;
             // 
             // 清空ToolStripMenuItem
             // 
             清空ToolStripMenuItem.Name = "清空ToolStripMenuItem";
-            清空ToolStripMenuItem.Size = new Size(180, 24);
+            清空ToolStripMenuItem.Size = new Size(143, 24);
             清空ToolStripMenuItem.Text = "清空";
             清空ToolStripMenuItem.Click += 清空ToolStripMenuItem_Click;
             // 
             // 添加文件ToolStripMenuItem
             // 
             添加文件ToolStripMenuItem.Name = "添加文件ToolStripMenuItem";
-            添加文件ToolStripMenuItem.Size = new Size(180, 24);
+            添加文件ToolStripMenuItem.Size = new Size(143, 24);
             添加文件ToolStripMenuItem.Text = "添加文件";
             添加文件ToolStripMenuItem.Click += 添加文件ToolStripMenuItem_Click;
             // 
@@ -106,7 +106,7 @@
             // 
             提取ToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { 音频ToolStripMenuItem, 视频ToolStripMenuItem });
             提取ToolStripMenuItem.Name = "提取ToolStripMenuItem";
-            提取ToolStripMenuItem.Size = new Size(180, 24);
+            提取ToolStripMenuItem.Size = new Size(143, 24);
             提取ToolStripMenuItem.Text = "提取";
             // 
             // 音频ToolStripMenuItem

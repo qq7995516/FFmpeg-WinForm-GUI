@@ -1,10 +1,10 @@
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace ffmpeg视频处理
 {
     public partial class Form1 : Form
     {
-        // 常用视频和音频文件扩展名列表
         private readonly HashSet<string> _videoExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         { ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".webm", ".mpeg", ".mpg" };
 
@@ -18,7 +18,6 @@ namespace ffmpeg视频处理
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // 检查 FFmpeg 是否可用
             if (!FFmpegDownloader.IsFFmpegInstalled())
             {
                 var result = MessageBox.Show(
@@ -29,10 +28,8 @@ namespace ffmpeg视频处理
 
                 if (result == DialogResult.Yes)
                 {
-                    // 显示下载窗口
                     using var downloadForm = new FFmpegDownloadForm();
                     downloadForm.ShowDialog(this);
-
                 }
                 else if (result == DialogResult.No)
                 {
@@ -46,7 +43,6 @@ namespace ffmpeg视频处理
                 }
             }
 
-            // 配置 FFMpegCore
             FFMpegCore.GlobalFFOptions.Configure(options =>
             {
                 options.BinaryFolder = Path.Combine(Application.StartupPath, "ffmpegShared", "bin");
@@ -55,127 +51,67 @@ namespace ffmpeg视频处理
             InitializeListViewSettings();
         }
 
-        private void 合并视频ToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void 合并视频ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            try
+            await ProcessFiles("合并视频", async (files, progress, token) =>
             {
-                // 获取所有勾选的项目
-                var checkedItems = GetCheckedItems();
-                if (checkedItems.Count < 2)
+                if (files.Length < 2)
                 {
                     MessageBox.Show("请至少选择两个视频文件进行合并", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
-                // 检查是否都是视频文件
-                foreach (var filePath in checkedItems)
-                {
-                    string extension = Path.GetExtension(filePath);
-                    if (!_videoExtensions.Contains(extension))
-                    {
-                        MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是视频文件，无法进行视频合并", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                }
+                if (!ValidateFileTypes(files, _videoExtensions, "视频"))
+                    return;
 
-                // 选择保存位置
                 using var saveDialog = new SaveFileDialog();
-
                 saveDialog.Filter = "MP4 文件|*.mp4|所有文件|*.*";
                 saveDialog.Title = "保存合并后的视频";
                 saveDialog.DefaultExt = "mp4";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    string outputPath = saveDialog.FileName;
+                    bool success = await FFmpegExtensions.MergeVideosAsync(
+                        saveDialog.FileName, files, progress, token);
 
-                    // 显示进度提示
-                    MessageBox.Show("开始合并视频，请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    // 执行合并操作
-                    bool success = FFmpegExtensions.MergeVideos(outputPath, checkedItems.ToArray());
-
-                    if (success)
-                    {
-                        MessageBox.Show("视频合并成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("视频合并失败，请检查文件格式是否兼容", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    ShowResult(success, "视频合并");
                 }
-
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"合并视频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            });
         }
 
-        private void 合并音频ToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void 合并音频ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            try
+            await ProcessFiles("合并音频", async (files, progress, token) =>
             {
-                // 获取所有勾选的项目
-                var checkedItems = GetCheckedItems();
-                if (checkedItems.Count < 2)
+                if (files.Length < 2)
                 {
                     MessageBox.Show("请至少选择两个音频文件进行合并", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
-                // 检查是否都是音频文件
-                foreach (var filePath in checkedItems)
-                {
-                    string extension = Path.GetExtension(filePath);
-                    if (!_audioExtensions.Contains(extension))
-                    {
-                        MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是音频文件，无法进行音频合并", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                }
+                if (!ValidateFileTypes(files, _audioExtensions, "音频"))
+                    return;
 
-                // 选择保存位置
                 using var saveDialog = new SaveFileDialog();
-
                 saveDialog.Filter = "MP3 文件|*.mp3|WAV 文件|*.wav|所有文件|*.*";
                 saveDialog.Title = "保存合并后的音频";
                 saveDialog.DefaultExt = "mp3";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    string outputPath = saveDialog.FileName;
+                    bool success = await FFmpegExtensions.MergeAudiosAsync(
+                        saveDialog.FileName, files, progress, token);
 
-                    // 显示进度提示
-                    MessageBox.Show("开始合并音频，请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    // 执行合并操作
-                    bool success = FFmpegExtensions.MergeAudios(outputPath, checkedItems.ToArray());
-
-                    if (success)
-                    {
-                        MessageBox.Show("音频合并成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("音频合并失败，请检查文件格式是否兼容", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    ShowResult(success, "音频合并");
                 }
-
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"合并音频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            });
         }
 
-        private void 合并音视频ToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void 合并音视频ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            try
+            await ProcessFiles("合并音视频", async (files, progress, token) =>
             {
-                // 获取所有勾选的项目
-                var checkedItems = GetCheckedItems();
-                if (checkedItems.Count != 2)
+                if (files.Length != 2)
                 {
                     MessageBox.Show("请选择一个视频文件和一个音频文件进行合并", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
@@ -184,8 +120,7 @@ namespace ffmpeg视频处理
                 string videoFile = null;
                 string audioFile = null;
 
-                // 确定哪个是视频文件，哪个是音频文件
-                foreach (var filePath in checkedItems)
+                foreach (var filePath in files)
                 {
                     string extension = Path.GetExtension(filePath);
                     if (_videoExtensions.Contains(extension))
@@ -221,45 +156,87 @@ namespace ffmpeg视频处理
                     return;
                 }
 
-                // 选择保存位置
                 using var saveDialog = new SaveFileDialog();
-
                 saveDialog.Filter = "MP4 文件|*.mp4|所有文件|*.*";
                 saveDialog.Title = "保存合并后的视频";
                 saveDialog.DefaultExt = "mp4";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
-                    string outputPath = saveDialog.FileName;
+                    bool success = await FFmpegExtensions.MergeAudioVideoAsync(
+                        videoFile, audioFile, saveDialog.FileName, true, progress, token);
 
-                    // 显示进度提示
-                    MessageBox.Show("开始合并音视频，请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    ShowResult(success, "音视频合并");
+                }
+            });
+        }
 
-                    // 执行合并操作
-                    bool success = FFmpegExtensions.MergeAudioVideo(videoFile, audioFile, outputPath, true);
-
-                    if (success)
-                    {
-                        MessageBox.Show("音视频合并成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
-                    {
-                        MessageBox.Show("音视频合并失败，请检查文件格式是否兼容", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+        private async void 提取音频ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            await ProcessFiles("批量提取音频", async (files, progress, token) =>
+            {
+                if (files.Length == 0)
+                {
+                    MessageBox.Show("请选择至少一个视频文件进行音频提取", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
                 }
 
-            }
-            catch (Exception ex)
+                if (!ValidateFileTypes(files, _videoExtensions, "视频"))
+                    return;
+
+                using var folderDialog = new FolderBrowserDialog();
+                folderDialog.Description = "选择音频文件保存位置";
+
+                if (folderDialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                var result = await FFmpegExtensions.BatchExtractAudioAsync(
+                    files, folderDialog.SelectedPath, progress, token);
+
+                string message = $"音频提取完成！\n成功: {result.success} 个\n失败: {result.failed} 个";
+                this.Invoke(new Action(() =>
+                {
+                    MessageBox.Show(message, "完成", MessageBoxButtons.OK,
+                        result.failed == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                }));
+            });
+        }
+
+        private async void 提取视频ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            await ProcessFiles("批量提取视频", async (files, progress, token) =>
             {
-                MessageBox.Show($"合并音视频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+                if (files.Length == 0)
+                {
+                    MessageBox.Show("请选择至少一个视频文件进行视频提取（去除音频）", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                if (!ValidateFileTypes(files, _videoExtensions, "视频"))
+                    return;
+
+                using var folderDialog = new FolderBrowserDialog();
+                folderDialog.Description = "选择视频文件保存位置";
+
+                if (folderDialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                var result = await FFmpegExtensions.BatchExtractVideoAsync(
+                    files, folderDialog.SelectedPath, progress, token);
+
+                string message = $"视频提取完成！\n成功: {result.success} 个\n失败: {result.failed} 个";
+                this.Invoke(new Action(() =>
+                {
+                    MessageBox.Show(message, "完成", MessageBoxButtons.OK,
+                        result.failed == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                }));
+            });
         }
 
         private void 删除勾选项ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             try
             {
-                // 从后向前删除选中项，避免索引变化问题
                 for (int i = listViewFiles.Items.Count - 1; i >= 0; i--)
                 {
                     if (listViewFiles.Items[i].Checked)
@@ -278,7 +255,6 @@ namespace ffmpeg视频处理
         {
             try
             {
-                // 确认是否清空
                 var result = MessageBox.Show("确定要清空所有文件吗？", "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.Yes)
                 {
@@ -295,40 +271,28 @@ namespace ffmpeg视频处理
         {
             try
             {
-                // 创建打开文件对话框
                 using var openFileDialog = new OpenFileDialog();
-
-                // 设置对话框属性
                 openFileDialog.Title = "选择要添加的文件";
                 openFileDialog.Filter = "媒体文件|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.flv;*.webm;*.mpeg;*.mpg;*.mp3;*.wav;*.aac;*.m4a;*.ogg;*.wma;*.flac|视频文件|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.flv;*.webm;*.mpeg;*.mpg|音频文件|*.mp3;*.wav;*.aac;*.m4a;*.ogg;*.wma;*.flac|所有文件|*.*";
-                openFileDialog.Multiselect = true; // 允许选择多个文件
+                openFileDialog.Multiselect = true;
 
-                // 显示对话框并检查用户是否点击了"确定"
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    // 处理选择的文件
                     foreach (string filePath in openFileDialog.FileNames)
                     {
-                        // 获取文件名
                         string fileName = Path.GetFileName(filePath);
-
-                        // 创建新的列表项
                         ListViewItem item = new ListViewItem(fileName);
-                        item.SubItems.Add(filePath); // 添加文件路径作为第二列
-                        item.Tag = filePath; // 存储完整路径在Tag中以便后续使用
-
-                        // 添加到ListView
+                        item.SubItems.Add(filePath);
+                        item.Tag = filePath;
                         listViewFiles.Items.Add(item);
                     }
 
-                    // 如果添加了文件，显示成功消息
                     if (openFileDialog.FileNames.Length > 0)
                     {
                         MessageBox.Show($"已成功添加 {openFileDialog.FileNames.Length} 个文件",
                             "添加成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
-
             }
             catch (Exception ex)
             {
@@ -337,7 +301,6 @@ namespace ffmpeg视频处理
             }
         }
 
-        // 辅助方法：获取所有勾选的文件路径
         private List<string> GetCheckedItems()
         {
             List<string> checkedItems = new List<string>();
@@ -350,180 +313,90 @@ namespace ffmpeg视频处理
             }
             return checkedItems;
         }
+
         private void InitializeListViewSettings()
         {
-            // 1. 设置 ListView 的 View 属性为 Details 以显示列
             listViewFiles.View = View.Details;
 
-            // 2. 清除可能已存在的旧列（可选，如果您想确保从头开始）
-            // listViewFiles.Columns.Clear();
-            // 3. 添加列标题 (如果尚未在设计器中添加)
-            //    检查以避免重复添加（如果此方法可能被多次调用或设计器已添加列）
             if (listViewFiles.Columns.Count == 0)
             {
-                listViewFiles.Columns.Add("文件名", 200, HorizontalAlignment.Left); // 参数：文本，宽度，对齐方式
+                listViewFiles.Columns.Add("文件名", 200, HorizontalAlignment.Left);
                 listViewFiles.Columns.Add("文件路径", 400, HorizontalAlignment.Left);
             }
-            else
-            {
-                // 如果列已存在，可以考虑更新它们的文本（如果需要）
-                // listViewFiles.Columns[0].Text = "文件名";
-                // listViewFiles.Columns[1].Text = "文件路径";
-            }
 
-            // 4. 允许多选（可选）
             listViewFiles.MultiSelect = true;
-
-            // 5. 显示网格线（可选，更易读）
             listViewFiles.GridLines = true;
-
-            // 6. 整行选择（可选，更美观）
             listViewFiles.FullRowSelect = true;
-
-            // 允许拖拽
             listViewFiles.AllowDrop = true;
         }
 
-        private void 提取音频ToolStripMenuItem_Click(object sender, EventArgs e)
+        private async Task ProcessFiles(string operationName,
+            Func<string[], IProgress<string>, CancellationToken, Task> operation)
         {
-            try
+            var checkedItems = GetCheckedItems();
+            if (checkedItems.Count == 0)
             {
-                // 获取所有勾选的项目
-                var checkedItems = GetCheckedItems();
-                if (checkedItems.Count == 0)
-                {
-                    MessageBox.Show("请选择至少一个视频文件进行音频提取", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
-
-                // 检查是否都是视频文件
-                foreach (var filePath in checkedItems)
-                {
-                    string extension = Path.GetExtension(filePath);
-                    if (!_videoExtensions.Contains(extension))
-                    {
-                        MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是视频文件，无法提取音频", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                }
-
-                // 选择保存文件夹
-                using var folderDialog = new FolderBrowserDialog();
-                folderDialog.Description = "选择音频文件保存位置";
-
-                if (folderDialog.ShowDialog() == DialogResult.OK)
-                {
-                    string outputFolder = folderDialog.SelectedPath;
-                    int successCount = 0;
-                    int failCount = 0;
-
-                    // 显示进度提示
-                    MessageBox.Show($"开始提取 {checkedItems.Count} 个视频的音频，请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    // 逐个提取音频
-                    foreach (var videoFile in checkedItems)
-                    {
-                        try
-                        {
-                            string fileName = Path.GetFileNameWithoutExtension(videoFile);
-                            string audioOutput = Path.Combine(outputFolder, $"{fileName}.mp3");
-
-                            // 执行提取操作
-                            bool success = FFmpegExtensions.ExtractAudio(videoFile, audioOutput);
-
-                            if (success)
-                                successCount++;
-                            else
-                                failCount++;
-                        }
-                        catch
-                        {
-                            failCount++;
-                        }
-                    }
-
-                    // 显示结果
-                    string message = $"音频提取完成！\n成功: {successCount} 个\n失败: {failCount} 个";
-                    MessageBox.Show(message, "完成", MessageBoxButtons.OK,
-                        failCount == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
-                }
+                MessageBox.Show($"请选择要进行{operationName}的文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
-            catch (Exception ex)
+
+            using var progressForm = new ProgressForm(operationName);
+
+            var progress = new Progress<string>(message =>
             {
-                MessageBox.Show($"提取音频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+                progressForm.UpdateStatus(message);
+            });
+
+            var progressTask = Task.Run(async () =>
+            {
+                try
+                {
+                    await operation(checkedItems.ToArray(), progress, progressForm.CancellationToken);
+                    progressForm.SetCompleted(true);
+                }
+                catch (OperationCanceledException)
+                {
+                    progressForm.UpdateStatus("操作已取消");
+                    progressForm.SetCompleted(false);
+                }
+                catch (Exception ex)
+                {
+                    progressForm.UpdateStatus($"错误: {ex.Message}");
+                    progressForm.SetCompleted(false);
+                }
+            });
+
+            progressForm.ShowDialog(this);
+            await progressTask;
         }
 
-        private void 提取视频ToolStripMenuItem_Click(object sender, EventArgs e)
+        private bool ValidateFileTypes(string[] files, HashSet<string> allowedExtensions, string fileType)
         {
-            try
+            foreach (var filePath in files)
             {
-                // 获取所有勾选的项目
-                var checkedItems = GetCheckedItems();
-                if (checkedItems.Count == 0)
+                string extension = Path.GetExtension(filePath);
+                if (!allowedExtensions.Contains(extension))
                 {
-                    MessageBox.Show("请选择至少一个视频文件进行视频提取（去除音频）", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
-
-                // 检查是否都是视频文件
-                foreach (var filePath in checkedItems)
-                {
-                    string extension = Path.GetExtension(filePath);
-                    if (!_videoExtensions.Contains(extension))
-                    {
-                        MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是视频文件，无法提取视频", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                }
-
-                // 选择保存文件夹
-                using var folderDialog = new FolderBrowserDialog();
-                folderDialog.Description = "选择视频文件保存位置";
-
-                if (folderDialog.ShowDialog() == DialogResult.OK)
-                {
-                    string outputFolder = folderDialog.SelectedPath;
-                    int successCount = 0;
-                    int failCount = 0;
-
-                    // 显示进度提示
-                    MessageBox.Show($"开始提取 {checkedItems.Count} 个视频（去除音频），请稍候...", "处理中", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    // 逐个提取视频
-                    foreach (var videoFile in checkedItems)
-                    {
-                        try
-                        {
-                            string fileName = Path.GetFileNameWithoutExtension(videoFile);
-                            string extension = Path.GetExtension(videoFile);
-                            string videoOutput = Path.Combine(outputFolder, $"{fileName}_no_audio{extension}");
-
-                            // 执行提取操作
-                            bool success = FFmpegExtensions.ExtractVideo(videoFile, videoOutput);
-
-                            if (success)
-                                successCount++;
-                            else
-                                failCount++;
-                        }
-                        catch
-                        {
-                            failCount++;
-                        }
-                    }
-
-                    // 显示结果
-                    string message = $"视频提取完成！\n成功: {successCount} 个\n失败: {failCount} 个";
-                    MessageBox.Show(message, "完成", MessageBoxButtons.OK,
-                        failCount == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+                    MessageBox.Show($"文件 {Path.GetFileName(filePath)} 不是{fileType}文件", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"提取视频时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            return true;
         }
 
+        private void ShowResult(bool success, string operationName)
+        {
+            this.Invoke(new Action(() =>
+            {
+                if (success)
+                {
+                    MessageBox.Show($"{operationName}成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"{operationName}失败，请检查文件格式是否兼容", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }));
+        }
     }
 }

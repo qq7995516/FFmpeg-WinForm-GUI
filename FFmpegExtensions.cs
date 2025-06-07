@@ -1,85 +1,269 @@
 ﻿using FFMpegCore;
 using FFMpegCore.Enums;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using System.IO;
 
 namespace ffmpeg视频处理
 {
     public static class FFmpegExtensions
     {
         /// <summary>
-        /// 合并多个视频文件
+        /// 异步合并多个视频文件
         /// </summary>
-        /// <param name="output">输出文件路径</param>
-        /// <param name="videoFiles">要合并的视频文件路径数组</param>
-        /// <returns>合并是否成功</returns>
-        public static bool MergeVideos(string output, params string[] videoFiles)
+        public static async Task<bool> MergeVideosAsync(string output, string[] videoFiles,
+            IProgress<string> progress = null, CancellationToken cancellationToken = default)
         {
-            // 直接调用内置 Join 方法即可
-            return FFMpeg.Join(output, videoFiles);
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    progress?.Report("开始合并视频文件...");
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    bool result = FFMpeg.Join(output, videoFiles);
+
+                    progress?.Report(result ? "视频合并完成" : "视频合并失败");
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("操作已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"合并失败: {ex.Message}");
+                    return false;
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
-        /// 合并多个音频文件
+        /// 异步合并多个音频文件
         /// </summary>
-        /// <param name="output">输出音频文件路径</param>
-        /// <param name="audioFiles">要合并的音频文件路径数组</param>
-        /// <returns>合并是否成功</returns>
-        public static bool MergeAudios(string output, params string[] audioFiles)
+        public static async Task<bool> MergeAudiosAsync(string output, string[] audioFiles,
+            IProgress<string> progress = null, CancellationToken cancellationToken = default)
         {
-            // 这里实际上可以利用 FFMpeg.Join 实现，但需要保证输入都是音频文件
-            // FFMpeg.Join 主要为视频设计，音频可用 ffmpeg concat demuxer 达成
-            // 以下是简单的方案
-            return FFMpegArguments
-                .FromConcatInput(audioFiles)
-                .OutputToFile(output, true, opt => opt.CopyChannel())
-                .ProcessSynchronously();
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    progress?.Report("开始合并音频文件...");
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    bool result = FFMpegArguments
+                        .FromConcatInput(audioFiles)
+                        .OutputToFile(output, true, opt => opt.CopyChannel())
+                        .ProcessSynchronously();
+
+                    progress?.Report(result ? "音频合并完成" : "音频合并失败");
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("操作已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"合并失败: {ex.Message}");
+                    return false;
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
-        /// 合并视频和音频为一个文件（如视频去原音轨后加上新音轨）
+        /// 异步合并视频和音频
         /// </summary>
-        /// <param name="videoFile">原始视频文件路径</param>
-        /// <param name="audioFile">音频文件路径</param>
-        /// <param name="output">输出文件路径</param>
-        /// <param name="stopAtShortest">是否按最短时长合并</param>
-        /// <returns>合并是否成功</returns>
-        public static bool MergeAudioVideo(string videoFile, string audioFile, string output, bool stopAtShortest = false)
+        public static async Task<bool> MergeAudioVideoAsync(string videoFile, string audioFile, string output,
+            bool stopAtShortest = false, IProgress<string> progress = null, CancellationToken cancellationToken = default)
         {
-            // 直接调用 ReplaceAudio 完成视频音轨替换
-            return FFMpeg.ReplaceAudio(videoFile, audioFile, output, stopAtShortest);
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    progress?.Report("开始合并音视频文件...");
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    bool result = FFMpeg.ReplaceAudio(videoFile, audioFile, output, stopAtShortest);
+
+                    progress?.Report(result ? "音视频合并完成" : "音视频合并失败");
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("操作已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"合并失败: {ex.Message}");
+                    return false;
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
-        /// 从视频文件中提取音频
+        /// 异步提取音频
         /// </summary>
-        /// <param name="videoFile">输入视频文件路径</param>
-        /// <param name="audioOutput">输出音频文件路径</param>
-        /// <returns>提取是否成功</returns>
-        public static bool ExtractAudio(string videoFile, string audioOutput)
+        public static async Task<bool> ExtractAudioAsync(string videoFile, string audioOutput,
+            IProgress<string> progress = null, CancellationToken cancellationToken = default)
         {
-            return FFMpegArguments
-                .FromFileInput(videoFile)
-                .OutputToFile(audioOutput, true, opt => opt
-                    .WithVideoCodec("none")
-                    .WithAudioCodec("copy")
-                )
-                .ProcessSynchronously();
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    progress?.Report($"开始提取音频: {Path.GetFileName(videoFile)}");
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    bool result = FFMpegArguments
+                        .FromFileInput(videoFile)
+                        .OutputToFile(audioOutput, true, opt => opt
+                            .WithVideoCodec("none")
+                            .WithAudioCodec("copy"))
+                        .ProcessSynchronously();
+
+                    progress?.Report(result ? "音频提取完成" : "音频提取失败");
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("操作已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"提取失败: {ex.Message}");
+                    return false;
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
-        /// 从视频文件中提取视频流（去除音频）
+        /// 异步提取视频
         /// </summary>
-        /// <param name="videoFile">输入视频文件路径</param>
-        /// <param name="videoOutput">输出视频文件路径</param>
-        /// <returns>提取是否成功</returns>
-        public static bool ExtractVideo(string videoFile, string videoOutput)
+        public static async Task<bool> ExtractVideoAsync(string videoFile, string videoOutput,
+            IProgress<string> progress = null, CancellationToken cancellationToken = default)
         {
-            return FFMpegArguments
-                .FromFileInput(videoFile)
-                .OutputToFile(videoOutput, true, opt => opt
-                    .WithVideoCodec("copy")   // 直接复制视频流
-                    .WithAudioCodec("none")   // 不包含音频流
-                )
-                .ProcessSynchronously();
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    progress?.Report($"开始提取视频: {Path.GetFileName(videoFile)}");
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    bool result = FFMpegArguments
+                        .FromFileInput(videoFile)
+                        .OutputToFile(videoOutput, true, opt => opt
+                            .WithVideoCodec("copy")
+                            .WithAudioCodec("none"))
+                        .ProcessSynchronously();
+
+                    progress?.Report(result ? "视频提取完成" : "视频提取失败");
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("操作已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"提取失败: {ex.Message}");
+                    return false;
+                }
+            }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 批量异步提取音频
+        /// </summary>
+        public static async Task<(int success, int failed)> BatchExtractAudioAsync(
+            string[] videoFiles, string outputFolder,
+            IProgress<string> progress = null, CancellationToken cancellationToken = default)
+        {
+            int successCount = 0;
+            int failCount = 0;
+
+            for (int i = 0; i < videoFiles.Length; i++)
+            {
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    string videoFile = videoFiles[i];
+                    string fileName = Path.GetFileNameWithoutExtension(videoFile);
+                    string audioOutput = Path.Combine(outputFolder, $"{fileName}.mp3");
+
+                    progress?.Report($"处理 {i + 1}/{videoFiles.Length}: {Path.GetFileName(videoFile)}");
+
+                    bool result = await ExtractAudioAsync(videoFile, audioOutput, null, cancellationToken);
+
+                    if (result)
+                        successCount++;
+                    else
+                        failCount++;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("批量处理已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"处理 {Path.GetFileName(videoFiles[i])} 时出错: {ex.Message}");
+                    failCount++;
+                }
+            }
+
+            return (successCount, failCount);
+        }
+
+        /// <summary>
+        /// 批量异步提取视频
+        /// </summary>
+        public static async Task<(int success, int failed)> BatchExtractVideoAsync(
+            string[] videoFiles, string outputFolder,
+            IProgress<string> progress = null, CancellationToken cancellationToken = default)
+        {
+            int successCount = 0;
+            int failCount = 0;
+
+            for (int i = 0; i < videoFiles.Length; i++)
+            {
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    string videoFile = videoFiles[i];
+                    string fileName = Path.GetFileNameWithoutExtension(videoFile);
+                    string extension = Path.GetExtension(videoFile);
+                    string videoOutput = Path.Combine(outputFolder, $"{fileName}_no_audio{extension}");
+
+                    progress?.Report($"处理 {i + 1}/{videoFiles.Length}: {Path.GetFileName(videoFile)}");
+
+                    bool result = await ExtractVideoAsync(videoFile, videoOutput, null, cancellationToken);
+
+                    if (result)
+                        successCount++;
+                    else
+                        failCount++;
+                }
+                catch (OperationCanceledException)
+                {
+                    progress?.Report("批量处理已取消");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    progress?.Report($"处理 {Path.GetFileName(videoFiles[i])} 时出错: {ex.Message}");
+                    failCount++;
+                }
+            }
+
+            return (successCount, failCount);
         }
     }
 }
