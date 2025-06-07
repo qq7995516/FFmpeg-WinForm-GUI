@@ -30,10 +30,9 @@ namespace ffmpeg视频处理
                 if (result == DialogResult.Yes)
                 {
                     // 显示下载窗口
-                    using (var downloadForm = new FFmpegDownloadForm())
-                    {
-                        downloadForm.ShowDialog(this);
-                    }
+                    using var downloadForm = new FFmpegDownloadForm();
+                    downloadForm.ShowDialog(this);
+
                 }
                 else if (result == DialogResult.No)
                 {
